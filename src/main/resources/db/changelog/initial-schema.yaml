@@ -1,0 +1,256 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1762808506332-1
+      author: oleh.prukhnytskyi
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createSequence:
+            incrementBy: 1
+            sequenceName: intake_id_seq
+            startValue: 1
+  - changeSet:
+      id: 1762808506332-2
+      author: oleh.prukhnytskyi
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createSequence:
+            incrementBy: 1
+            sequenceName: outbox_event_id_seq
+            startValue: 1
+  - changeSet:
+      id: 1762808506332-3
+      author: oleh.prukhnytskyi
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createSequence:
+            incrementBy: 1
+            sequenceName: users_id_seq
+            startValue: 1
+  - changeSet:
+      id: 1762808506332-4
+      author: oleh.prukhnytskyi
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: intake_pkey
+                  name: id
+                  type: BIGINT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: amount
+                  type: INT
+              - column:
+                  name: date
+                  type: date
+              - column:
+                  name: food_id
+                  type: VARCHAR(255)
+              - column:
+                  name: food_name
+                  type: VARCHAR(255)
+              - column:
+                  constraints:
+                    nullable: false
+                  defaultValueNumeric: !!float '0'
+                  name: calories_total
+                  type: NUMBER
+              - column:
+                  constraints:
+                    nullable: false
+                  defaultValueNumeric: !!float '0'
+                  name: calories_per_100
+                  type: NUMBER
+              - column:
+                  constraints:
+                    nullable: false
+                  defaultValueNumeric: !!float '0'
+                  name: carbohydrates_total
+                  type: NUMBER
+              - column:
+                  constraints:
+                    nullable: false
+                  defaultValueNumeric: !!float '0'
+                  name: carbohydrates_per_100
+                  type: NUMBER
+              - column:
+                  constraints:
+                    nullable: false
+                  defaultValueNumeric: !!float '0'
+                  name: fat_total
+                  type: NUMBER
+              - column:
+                  constraints:
+                    nullable: false
+                  defaultValueNumeric: !!float '0'
+                  name: fat_per_100
+                  type: NUMBER
+              - column:
+                  constraints:
+                    nullable: false
+                  defaultValueNumeric: !!float '0'
+                  name: protein_total
+                  type: NUMBER
+              - column:
+                  constraints:
+                    nullable: false
+                  defaultValueNumeric: !!float '0'
+                  name: protein_per_100
+                  type: NUMBER
+              - column:
+                  name: user_id
+                  type: BIGINT
+            tableName: intake
+  - changeSet:
+      id: 1762808506332-5
+      author: oleh.prukhnytskyi
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: outbox_event_pkey
+                  name: id
+                  type: BIGINT
+              - column:
+                  name: aggregate_id
+                  type: VARCHAR(255)
+              - column:
+                  name: aggregate_type
+                  type: VARCHAR(255)
+              - column:
+                  name: created_at
+                  type: timestamp
+              - column:
+                  name: event_type
+                  type: VARCHAR(255)
+              - column:
+                  name: payload
+                  type: OID
+              - column:
+                  constraints:
+                    nullable: false
+                  name: processed
+                  type: BOOLEAN
+              - column:
+                  name: processed_at
+                  type: timestamp
+            tableName: outbox_event
+  - changeSet:
+      id: 1762808506332-6
+      author: oleh.prukhnytskyi
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: user_profiles_pkey
+                  name: user_id
+                  type: BIGINT
+              - column:
+                  name: activity_level
+                  type: VARCHAR(255)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: age
+                  type: INT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: calories
+                  type: INT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: carbohydrates
+                  type: INT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: fat
+                  type: INT
+              - column:
+                  name: gender
+                  type: VARCHAR(255)
+              - column:
+                  name: goal
+                  type: VARCHAR(255)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: height
+                  type: INT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: protein
+                  type: INT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: weight
+                  type: INT
+            tableName: user_profiles
+  - changeSet:
+      id: 1762808506332-7
+      author: oleh.prukhnytskyi
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: users_pkey
+                  name: id
+                  type: BIGINT
+              - column:
+                  name: auth_provider
+                  type: VARCHAR(255)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: email
+                  type: VARCHAR(320)
+              - column:
+                  name: password
+                  type: VARCHAR(64)
+            tableName: users
+  - changeSet:
+      id: 1762808506332-8
+      author: oleh.prukhnytskyi
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addUniqueConstraint:
+            columnNames: email
+            constraintName: uk6dotkott2kjsp8vw4d0m25fb7
+            tableName: users
+  - changeSet:
+      id: 1762808506332-9
+      author: oleh.prukhnytskyi
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: user_id
+            baseTableName: user_profiles
+            constraintName: fkjcad5nfve11khsnpwj1mv8frj
+            onDelete: NO ACTION
+            referencedColumnNames: id
+            referencedTableName: users
+

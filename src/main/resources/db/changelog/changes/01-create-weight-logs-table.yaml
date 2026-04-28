@@ -1,0 +1,63 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1777370151321-1
+      author: oleh.prukhnytskyi
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createTable:
+            columns:
+              - column:
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_weight_logs
+                  name: id
+                  type: BIGINT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: user_id
+                  type: BIGINT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: weight
+                  type: DECIMAL(5, 2)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: record_date
+                  type: DATE
+              - column:
+                  constraints:
+                    nullable: false
+                  name: source
+                  type: VARCHAR(50)
+              - column:
+                  name: created_at
+                  type: DATETIME
+            tableName: weight_logs
+  - changeSet:
+      id: 1777370151321-2
+      author: oleh.prukhnytskyi
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - addUniqueConstraint:
+            columnNames: user_id, record_date
+            constraintName: uc_5ae1ea9bfc098c698f31a09ae
+            tableName: weight_logs
+  - changeSet:
+      id: 1777370151321-3
+      author: oleh.prukhnytskyi
+      objectQuotingStrategy: QUOTE_ONLY_RESERVED_WORDS
+      changes:
+        - createIndex:
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  descending: true
+                  name: record_date
+            indexName: idx_weight_logs_user_date
+            tableName: weight_logs
