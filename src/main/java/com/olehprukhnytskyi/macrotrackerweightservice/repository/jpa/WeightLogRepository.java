@@ -24,8 +24,7 @@ public interface WeightLogRepository extends JpaRepository<WeightLog, Long> {
             ON CONFLICT (user_id, record_date)
             DO UPDATE SET 
                 weight = EXCLUDED.weight, 
-                source = EXCLUDED.source,
-                created_at = NOW()
+                source = EXCLUDED.source
             """, nativeQuery = true)
     void upsertWeight(
             @Param("userId") Long userId,
@@ -33,6 +32,8 @@ public interface WeightLogRepository extends JpaRepository<WeightLog, Long> {
             @Param("recordDate") LocalDate recordDate,
             @Param("source") String source
     );
+
+    Optional<WeightLog> findByUserIdAndRecordDate(Long userId, LocalDate recordDate);
 
     Optional<WeightLog> findByIdAndUserId(Long id, Long userId);
 

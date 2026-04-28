@@ -2,6 +2,7 @@ package com.olehprukhnytskyi.macrotrackerweightservice.service;
 
 import com.olehprukhnytskyi.event.UserDeletedEvent;
 import com.olehprukhnytskyi.exception.ConflictException;
+import com.olehprukhnytskyi.exception.InternalServerException;
 import com.olehprukhnytskyi.exception.NotFoundException;
 import com.olehprukhnytskyi.exception.error.CommonErrorCode;
 import com.olehprukhnytskyi.exception.error.WeightErrorCode;
@@ -29,7 +30,7 @@ public class WeightService {
     private final UserEventProducer userEventProducer;
 
     @Transactional
-    public void logWeight(Long userId, WeightLogRequestDto requestDto) {
+    public WeightLogResponseDto logWeight(Long userId, WeightLogRequestDto requestDto) {
         log.debug("Processing weight log creation/upsert for userId={} date={} source={}",
                 userId, requestDto.getDate(), requestDto.getSource());
         repository.upsertWeight(
@@ -38,6 +39,10 @@ public class WeightService {
                 requestDto.getDate(),
                 requestDto.getSource().name()
         );
+        WeightLog savedLog = repository.findByUserIdAndRecordDate(userId, requestDto.getDate())
+                .orElseThrow(() -> new InternalServerException(CommonErrorCode.INTERNAL_ERROR,
+                        "Failed to fetch weight log after save"));
+        return mapper.toDto(savedLog);
     }
 
     @Transactional(readOnly = true)
@@ -72,7 +77,7 @@ public class WeightService {
     }
 
     @Transactional
-    public void updateWeight(Long id, Long userId, WeightLogPatchDto patchDto) {
+    public WeightLogResponseDto updateWeight(Long id, Long userId, WeightLogPatchDto patchDto) {
         log.debug("Attempting to update weight log id={} for userId={}", id, userId);
         WeightLog weightLog = repository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> {
@@ -92,8 +97,8 @@ public class WeightService {
             }
         }
         mapper.updateEntityFromDto(patchDto, weightLog);
-        repository.save(weightLog);
-        log.debug("Successfully updated weight log id={}", id);
+        WeightLog savedLog = repository.save(weightLog);
+        return mapper.toDto(savedLog);
     }
 
     @Transactional

@@ -13,6 +13,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,12 +42,12 @@ public class WeightController {
             description = "Record a new weight entry for the user on a specific date"
     )
     @PostMapping
-    public ResponseEntity<Void> logWeight(
+    public ResponseEntity<WeightLogResponseDto> logWeight(
             @RequestHeader(CustomHeaders.X_USER_ID) Long userId,
             @Valid @RequestBody WeightLogRequestDto requestDto) {
         log.debug("Logging new weight entry for userId={} date={}", userId, requestDto.getDate());
-        weightService.logWeight(userId, requestDto);
-        return ResponseEntity.ok().build();
+        WeightLogResponseDto savedRecord = weightService.logWeight(userId, requestDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedRecord);
     }
 
     @Operation(
@@ -75,13 +76,13 @@ public class WeightController {
             description = "Modify an existing weight record by its ID"
     )
     @PatchMapping("/{id}")
-    public ResponseEntity<Void> patchWeight(
+    public ResponseEntity<WeightLogResponseDto> patchWeight(
             @RequestHeader(CustomHeaders.X_USER_ID) Long userId,
             @PathVariable Long id,
             @Valid @RequestBody WeightLogPatchDto patchDto) {
         log.debug("Updating weight entry id={} for userId={}", id, userId);
-        weightService.updateWeight(id, userId, patchDto);
-        return ResponseEntity.ok().build();
+        WeightLogResponseDto updatedRecord = weightService.updateWeight(id, userId, patchDto);
+        return ResponseEntity.ok(updatedRecord);
     }
 
     @Operation(
