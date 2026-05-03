@@ -1,5 +1,6 @@
 package com.olehprukhnytskyi.macrotrackerweightservice.controller;
 
+import com.olehprukhnytskyi.dto.PagedResponse;
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WeightLogPatchDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WeightLogRequestDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WeightLogResponseDto;
@@ -9,10 +10,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -51,24 +50,18 @@ public class WeightController {
     }
 
     @Operation(
-            summary = "Get weight history",
-            description = "Retrieve the user's weight history for "
-                          + "a specified date range or a specific number of days"
+            summary = "Get weight history (paginated)",
+            description = "Retrieve paginated weight history"
     )
     @GetMapping
-    public ResponseEntity<List<WeightLogResponseDto>> getWeightHistory(
+    public ResponseEntity<PagedResponse<WeightLogResponseDto>> getHistory(
             @RequestHeader(CustomHeaders.X_USER_ID) Long userId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate endDate,
-            @RequestParam(defaultValue = "30") int days) {
-        log.debug("Fetching weight history for userId={} startDate={} endDate={} days={}",
-                userId, startDate, endDate, days);
-        List<WeightLogResponseDto> history = weightService
-                .getHistory(userId, startDate, endDate, days);
-        log.debug("Fetched {} weight records for userId={}", history.size(), userId);
-        return ResponseEntity.ok(history);
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "30") int limit
+    ) {
+        PagedResponse<WeightLogResponseDto> response =
+                weightService.getHistory(userId, offset, limit);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(

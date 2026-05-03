@@ -1,5 +1,7 @@
 package com.olehprukhnytskyi.macrotrackerweightservice.service;
 
+import com.olehprukhnytskyi.dto.PagedResponse;
+import com.olehprukhnytskyi.dto.Pagination;
 import com.olehprukhnytskyi.event.UserDeletedEvent;
 import com.olehprukhnytskyi.exception.ConflictException;
 import com.olehprukhnytskyi.exception.InternalServerException;
@@ -17,6 +19,10 @@ import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,34 +52,33 @@ public class WeightService {
     }
 
     @Transactional(readOnly = true)
-    public List<WeightLogResponseDto> getHistory(Long userId, LocalDate startDate,
-                                                 LocalDate endDate, int days) {
-        LocalDate tempStart;
-        LocalDate tempEnd;
-        if (startDate != null && endDate != null) {
-            tempStart = startDate;
-            tempEnd = endDate;
-        } else if (startDate != null) {
-            tempStart = startDate;
-            tempEnd = startDate.plusDays(days);
-        } else if (endDate != null) {
-            tempEnd = endDate;
-            tempStart = endDate.minusDays(days);
-        } else {
-            tempEnd = LocalDate.now();
-            tempStart = tempEnd.minusDays(days);
+    public PagedResponse<WeightLogResponseDto> getHistory(
+            Long userId,
+            int offset,
+            int limit
+    ) {
+        if (limit > 100) {
+            limit = 100;
         }
-        if (tempEnd.isAfter(LocalDate.now())) {
-            tempEnd = LocalDate.now();
-        }
-        log.debug("Fetching weight history from DB for userId={} between {} and {}",
-                userId, tempStart, tempEnd);
-        List<WeightLog> logs = repository.findAllByUserIdAndRecordDateBetweenOrderByRecordDateAsc(
-                userId, tempStart, tempEnd);
-        log.debug("Found {} weight records in DB for userId={}", logs.size(), userId);
-        return logs.stream()
+        Pageable pageable = PageRequest.of(
+                offset / limit,
+                limit,
+                Sort.by("recordDate").descending()
+        );
+        Page<WeightLog> page = repository.findAllByUserId(userId, pageable);
+        Pagination pagination = new Pagination();
+        pagination.setOffset(offset);
+        pagination.setLimit(limit);
+        pagination.setTotal((int) page.getTotalElements());
+
+        List<WeightLogResponseDto> data = page.getContent()
+                .stream()
                 .map(mapper::toDto)
                 .toList();
+        PagedResponse<WeightLogResponseDto> response = new PagedResponse<>();
+        response.setData(data);
+        response.setPagination(pagination);
+        return response;
     }
 
     @Transactional
