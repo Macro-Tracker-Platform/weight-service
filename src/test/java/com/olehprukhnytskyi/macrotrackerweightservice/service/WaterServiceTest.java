@@ -9,8 +9,10 @@ import static org.mockito.Mockito.when;
 
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WaterLogDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WaterLogRequestDto;
+import com.olehprukhnytskyi.macrotrackerweightservice.dto.WaterTemplateDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.mapper.WaterMapper;
 import com.olehprukhnytskyi.macrotrackerweightservice.model.WaterLog;
+import com.olehprukhnytskyi.macrotrackerweightservice.model.WaterTemplate;
 import com.olehprukhnytskyi.macrotrackerweightservice.repository.jpa.WaterLogRepository;
 import com.olehprukhnytskyi.macrotrackerweightservice.repository.jpa.WaterTemplateRepository;
 import java.time.LocalDate;
@@ -101,6 +103,26 @@ class WaterServiceTest {
         waterService.createDefaultTemplates(USER_ID);
 
         // Then
+        verify(waterTemplateRepository, times(3)).saveAndFlush(any());
+    }
+
+    @Test
+    @DisplayName("When templates are first requested, should create defaults")
+    void getWaterTemplates_whenFirstRequested_shouldCreateDefaults() {
+        // Given
+        List<WaterTemplate> templates = List.of();
+        List<WaterTemplateDto> templateDtos = List.of();
+        when(waterTemplateRepository.findByUserIdAndAmountMl(any(), any(Integer.class)))
+                .thenReturn(Optional.empty());
+        when(waterTemplateRepository.findAllByUserIdOrderByAmountMl(USER_ID))
+                .thenReturn(templates);
+        when(mapper.toWaterTemplateDtos(templates)).thenReturn(templateDtos);
+
+        // When
+        List<WaterTemplateDto> result = waterService.getWaterTemplates(USER_ID);
+
+        // Then
+        assertThat(result).isEmpty();
         verify(waterTemplateRepository, times(3)).saveAndFlush(any());
     }
 

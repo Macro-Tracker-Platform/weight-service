@@ -41,8 +41,8 @@ public class WaterService {
         waterLogRepository.deleteByIdAndUserId(id, userId);
     }
 
-    @Transactional(readOnly = true)
     public List<WaterTemplateDto> getWaterTemplates(Long userId) {
+        createDefaultTemplates(userId);
         List<WaterTemplate> waterTemplates =
                 waterTemplateRepository.findAllByUserIdOrderByAmountMl(userId);
         return mapper.toWaterTemplateDtos(waterTemplates);

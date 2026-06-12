@@ -63,13 +63,13 @@ class MacroTrackerWeightServiceApplicationTests {
     }
 
     @Test
-    @DisplayName("When defaults are created repeatedly, should persist templates idempotently")
-    void createDefaultTemplates_whenCreatedRepeatedly_shouldPersistTemplatesIdempotently() {
+    @DisplayName("When templates are requested repeatedly, should create defaults idempotently")
+    void getWaterTemplates_whenRequestedRepeatedly_shouldCreateDefaultsIdempotently() {
         // Given
 
         // When
-        waterService.createDefaultTemplates(USER_ID);
-        waterService.createDefaultTemplates(USER_ID);
+        waterService.getWaterTemplates(USER_ID);
+        waterService.getWaterTemplates(USER_ID);
 
         // Then
         assertThat(waterService.getWaterTemplates(USER_ID))
