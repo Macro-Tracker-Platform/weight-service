@@ -1,0 +1,105 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1781352000000-1
+      author: codex
+      changes:
+        - addColumn:
+            tableName: weight_logs
+            columns:
+              - column:
+                  name: updated_at
+                  type: DATETIME
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: weight_request_idempotency
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_weight_request_idempotency
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: request_id
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: weight_log_id
+                  type: BIGINT
+              - column:
+                  name: weight
+                  type: DECIMAL(5, 2)
+              - column:
+                  name: record_date
+                  type: DATE
+              - column:
+                  name: created_at
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: weight_request_idempotency
+            columnNames: user_id, request_id
+            constraintName: uc_weight_request_idempotency_user_request
+        - createTable:
+            tableName: weight_log_changes
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_weight_log_changes
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: weight_log_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: weight
+                  type: DECIMAL(5, 2)
+              - column:
+                  name: record_date
+                  type: DATE
+              - column:
+                  name: updated_at
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: deleted
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: weight_log_changes
+            indexName: idx_weight_log_changes_user_cursor
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: id
+        - sql:
+            sql: >
+              INSERT INTO weight_log_changes (
+                user_id, weight_log_id, weight, record_date, updated_at, deleted
+              )
+              SELECT user_id, id, weight, record_date, updated_at, FALSE
+              FROM weight_logs

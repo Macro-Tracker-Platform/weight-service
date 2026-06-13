@@ -5,3 +5,5 @@ databaseChangeLog:
       file: db/changelog/changes/01-create-weight-logs-table.yaml
   - include:
       file: db/changelog/changes/02-create-water-tracker-tables.yaml
+  - include:
+      file: db/changelog/changes/03-add-weight-sync-support.yaml

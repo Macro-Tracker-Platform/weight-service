@@ -16,14 +16,34 @@ public interface WeightLogRepository extends JpaRepository<WeightLog, Long> {
 
     @Modifying
     @Query(value = """
-            INSERT INTO weight_logs (user_id, weight, record_date, source, created_at)
-            VALUES (:userId, :weight, :recordDate, :source, NOW())
+            INSERT INTO weight_logs (
+                user_id, weight, record_date, source, created_at, updated_at
+            )
+            VALUES (:userId, :weight, :recordDate, :source, NOW(), NOW())
             ON CONFLICT (user_id, record_date)
             DO UPDATE SET 
                 weight = EXCLUDED.weight, 
-                source = EXCLUDED.source
+                source = EXCLUDED.source,
+                updated_at = NOW()
             """, nativeQuery = true)
     void upsertWeight(
+            @Param("userId") Long userId,
+            @Param("weight") BigDecimal weight,
+            @Param("recordDate") LocalDate recordDate,
+            @Param("source") String source
+    );
+
+    @Modifying
+    @Query(value = """
+            MERGE INTO weight_logs (
+                user_id, weight, record_date, source, created_at, updated_at
+            )
+            KEY (user_id, record_date)
+            VALUES (
+                :userId, :weight, :recordDate, :source, NOW(), NOW()
+            )
+            """, nativeQuery = true)
+    void upsertWeightForH2(
             @Param("userId") Long userId,
             @Param("weight") BigDecimal weight,
             @Param("recordDate") LocalDate recordDate,
@@ -35,8 +55,6 @@ public interface WeightLogRepository extends JpaRepository<WeightLog, Long> {
     Optional<WeightLog> findByIdAndUserId(Long id, Long userId);
 
     boolean existsByUserIdAndRecordDate(Long userId, LocalDate recordDate);
-
-    void deleteByUserIdAndRecordDate(Long userId, LocalDate recordDate);
 
     @Modifying
     @Query(value = """

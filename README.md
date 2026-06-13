@@ -31,6 +31,14 @@ Responsible for managing user weight records, tracking historical physical data,
 
 * **Sync Communication**:
   * Exposes a REST API (`/api/weights`) for creating, reading, updating, and deleting weight records.
+  * `POST /api/weights` requires `X-Request-Id`. Retrying the same request ID returns
+    the original canonical `id`, `weight`, and `date`.
+  * A new request for an occupied `(userId, date)` upserts the existing record and
+    retains its canonical ID. Moving a record to an occupied date with `PATCH` returns
+    a conflict.
+  * `DELETE /api/weights/{id}` deletes by canonical ID.
+  * `GET /api/weights/delta?cursor=0&limit=100` returns ordered changes with
+    `updatedAt`, deletion tombstones, `nextCursor`, and `hasMore`.
 * **Async Communication (Kafka)**:
   * **Consumes**: `user-deleted` topic (from User Service).
   * **Produces**: `user-deleted` topic (Loopback for recursive batch deletion).
