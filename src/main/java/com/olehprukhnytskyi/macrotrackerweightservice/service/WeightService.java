@@ -22,6 +22,7 @@ import com.olehprukhnytskyi.macrotrackerweightservice.repository.jpa.WeightLogCh
 import com.olehprukhnytskyi.macrotrackerweightservice.repository.jpa.WeightLogRepository;
 import com.olehprukhnytskyi.macrotrackerweightservice.repository.jpa.WeightRequestIdempotencyRepository;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -130,6 +131,17 @@ public class WeightService {
         response.setData(data);
         response.setPagination(pagination);
         return response;
+    }
+
+    @Transactional(readOnly = true)
+    public List<WeightLogResponseDto> getHistoryByDateRange(Long userId, LocalDate startDate,
+                                                            LocalDate endDate) {
+        return repository
+                .findAllByUserIdAndRecordDateBetweenOrderByRecordDateAsc(
+                        userId, startDate, endDate)
+                .stream()
+                .map(mapper::toDto)
+                .toList();
     }
 
     @Transactional

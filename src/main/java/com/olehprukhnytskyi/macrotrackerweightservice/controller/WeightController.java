@@ -1,6 +1,5 @@
 package com.olehprukhnytskyi.macrotrackerweightservice.controller;
 
-import com.olehprukhnytskyi.dto.PagedResponse;
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WeightLogDeltaResponseDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WeightLogPatchDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WeightLogRequestDto;
@@ -13,8 +12,11 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -57,21 +59,6 @@ public class WeightController {
     }
 
     @Operation(
-            summary = "Get weight history (paginated)",
-            description = "Retrieve paginated weight history"
-    )
-    @GetMapping
-    public ResponseEntity<PagedResponse<WeightLogResponseDto>> getHistory(
-            @RequestHeader(CustomHeaders.X_USER_ID) Long userId,
-            @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(defaultValue = "30") int limit
-    ) {
-        PagedResponse<WeightLogResponseDto> response =
-                weightService.getHistory(userId, offset, limit);
-        return ResponseEntity.ok(response);
-    }
-
-    @Operation(
             summary = "Get weight changes",
             description = "Retrieve an ordered delta stream, including deletion tombstones"
     )
@@ -81,6 +68,19 @@ public class WeightController {
             @RequestParam(defaultValue = "0") Long cursor,
             @RequestParam(defaultValue = "100") int limit) {
         return ResponseEntity.ok(weightService.getDelta(userId, cursor, limit));
+    }
+
+    @Operation(
+            summary = "Get weight records by date range",
+            description = "Internal endpoint used by BFF export to fetch weight rows "
+                    + "for a bounded inclusive period"
+    )
+    @GetMapping("/range")
+    public ResponseEntity<List<WeightLogResponseDto>> getHistoryByDateRange(
+            @RequestHeader(CustomHeaders.X_USER_ID) Long userId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ResponseEntity.ok(weightService.getHistoryByDateRange(userId, startDate, endDate));
     }
 
     @Operation(

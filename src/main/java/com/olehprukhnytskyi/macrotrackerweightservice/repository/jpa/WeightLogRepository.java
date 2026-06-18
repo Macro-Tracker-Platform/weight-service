@@ -3,6 +3,7 @@ package com.olehprukhnytskyi.macrotrackerweightservice.repository.jpa;
 import com.olehprukhnytskyi.macrotrackerweightservice.model.WeightLog;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -51,6 +52,12 @@ public interface WeightLogRepository extends JpaRepository<WeightLog, Long> {
     );
 
     Optional<WeightLog> findByUserIdAndRecordDate(Long userId, LocalDate recordDate);
+
+    List<WeightLog> findAllByUserIdAndRecordDateBetweenOrderByRecordDateAsc(
+            Long userId,
+            LocalDate startDate,
+            LocalDate endDate
+    );
 
     Optional<WeightLog> findByIdAndUserId(Long id, Long userId);
 

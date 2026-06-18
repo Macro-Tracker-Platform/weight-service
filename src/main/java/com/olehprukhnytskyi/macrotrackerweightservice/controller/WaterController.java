@@ -12,6 +12,7 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -47,6 +48,14 @@ public class WaterController {
             @RequestHeader(CustomHeaders.X_USER_ID) Long userId,
             @RequestParam LocalDate date) {
         return ResponseEntity.ok(waterService.getWaterLogs(userId, date));
+    }
+
+    @GetMapping("/range")
+    public ResponseEntity<List<WaterLogDto>> getWaterLogsByDateRange(
+            @RequestHeader(CustomHeaders.X_USER_ID) Long userId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ResponseEntity.ok(waterService.getWaterLogs(userId, startDate, endDate));
     }
 
     @DeleteMapping("/{id}")

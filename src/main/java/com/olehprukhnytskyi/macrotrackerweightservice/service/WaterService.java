@@ -36,6 +36,14 @@ public class WaterService {
         return mapper.toWaterLogDtos(waterLogs);
     }
 
+    @Transactional(readOnly = true)
+    public List<WaterLogDto> getWaterLogs(Long userId, LocalDate startDate, LocalDate endDate) {
+        List<WaterLog> waterLogs = waterLogRepository
+                .findAllByUserIdAndRecordDateBetweenOrderByRecordDateAscCreatedAtAsc(
+                        userId, startDate, endDate);
+        return mapper.toWaterLogDtos(waterLogs);
+    }
+
     @Transactional
     public void deleteWater(Long userId, Long id) {
         waterLogRepository.deleteByIdAndUserId(id, userId);

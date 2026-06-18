@@ -14,6 +14,12 @@ public interface WaterLogRepository extends JpaRepository<WaterLog, Long> {
             LocalDate recordDate
     );
 
+    List<WaterLog> findAllByUserIdAndRecordDateBetweenOrderByRecordDateAscCreatedAtAsc(
+            Long userId,
+            LocalDate startDate,
+            LocalDate endDate
+    );
+
     void deleteByIdAndUserId(Long id, Long userId);
 
     void deleteAllByUserId(Long userId);
