@@ -12,18 +12,15 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class WaterTemplateDto {
+public class WaterTemplateSyncItemDto {
     private Long id;
 
     @Min(1)
     @Max(10000)
-    private int amountMl;
+    private Integer amountMl;
 
-    private boolean active;
-
+    private Boolean active;
     private Instant updatedAt;
-
     private boolean deleted;
-
     private Long version;
 }

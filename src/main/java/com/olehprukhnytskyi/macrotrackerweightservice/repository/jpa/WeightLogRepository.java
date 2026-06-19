@@ -2,6 +2,7 @@ package com.olehprukhnytskyi.macrotrackerweightservice.repository.jpa;
 
 import com.olehprukhnytskyi.macrotrackerweightservice.model.WeightLog;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -13,19 +14,21 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface WeightLogRepository extends JpaRepository<WeightLog, Long> {
-    Page<WeightLog> findAllByUserId(Long userId, Pageable pageable);
+    Page<WeightLog> findAllByUserIdAndDeletedFalse(Long userId, Pageable pageable);
 
     @Modifying
     @Query(value = """
             INSERT INTO weight_logs (
-                user_id, weight, record_date, source, created_at, updated_at
+                user_id, weight, record_date, source, created_at, updated_at, is_deleted, version
             )
-            VALUES (:userId, :weight, :recordDate, :source, NOW(), NOW())
+            VALUES (:userId, :weight, :recordDate, :source, NOW(), NOW(), FALSE, 0)
             ON CONFLICT (user_id, record_date)
             DO UPDATE SET 
                 weight = EXCLUDED.weight, 
                 source = EXCLUDED.source,
-                updated_at = NOW()
+                updated_at = NOW(),
+                is_deleted = FALSE,
+                version = weight_logs.version + 1
             """, nativeQuery = true)
     void upsertWeight(
             @Param("userId") Long userId,
@@ -37,11 +40,11 @@ public interface WeightLogRepository extends JpaRepository<WeightLog, Long> {
     @Modifying
     @Query(value = """
             MERGE INTO weight_logs (
-                user_id, weight, record_date, source, created_at, updated_at
+                user_id, weight, record_date, source, created_at, updated_at, is_deleted, version
             )
             KEY (user_id, record_date)
             VALUES (
-                :userId, :weight, :recordDate, :source, NOW(), NOW()
+                :userId, :weight, :recordDate, :source, NOW(), NOW(), FALSE, 0
             )
             """, nativeQuery = true)
     void upsertWeightForH2(
@@ -53,7 +56,7 @@ public interface WeightLogRepository extends JpaRepository<WeightLog, Long> {
 
     Optional<WeightLog> findByUserIdAndRecordDate(Long userId, LocalDate recordDate);
 
-    List<WeightLog> findAllByUserIdAndRecordDateBetweenOrderByRecordDateAsc(
+    List<WeightLog> findAllByUserIdAndDeletedFalseAndRecordDateBetweenOrderByRecordDateAsc(
             Long userId,
             LocalDate startDate,
             LocalDate endDate
@@ -61,7 +64,17 @@ public interface WeightLogRepository extends JpaRepository<WeightLog, Long> {
 
     Optional<WeightLog> findByIdAndUserId(Long id, Long userId);
 
+    Optional<WeightLog> findByIdAndUserIdAndDeletedFalse(Long id, Long userId);
+
+    List<WeightLog> findAllByUserIdAndUpdatedAtAfterOrderByUpdatedAtAscIdAsc(
+            Long userId,
+            Instant updatedAt,
+            Pageable pageable
+    );
+
     boolean existsByUserIdAndRecordDate(Long userId, LocalDate recordDate);
+
+    boolean existsByUserIdAndRecordDateAndDeletedFalse(Long userId, LocalDate recordDate);
 
     @Modifying
     @Query(value = """

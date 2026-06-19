@@ -5,8 +5,11 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -36,4 +39,21 @@ public class WaterTemplate {
 
     @Column(nullable = false)
     private boolean active;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    @Column(name = "is_deleted", nullable = false)
+    private boolean deleted;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
+    @PrePersist
+    void onCreate() {
+        if (updatedAt == null) {
+            updatedAt = Instant.now();
+        }
+    }
 }

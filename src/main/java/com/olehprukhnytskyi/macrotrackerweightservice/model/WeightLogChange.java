@@ -49,4 +49,7 @@ public class WeightLogChange {
 
     @Column(nullable = false)
     private boolean deleted;
+
+    @Column(nullable = false)
+    private Long version;
 }

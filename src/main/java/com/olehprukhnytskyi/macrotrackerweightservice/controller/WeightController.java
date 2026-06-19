@@ -4,6 +4,8 @@ import com.olehprukhnytskyi.macrotrackerweightservice.dto.WeightLogDeltaResponse
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WeightLogPatchDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WeightLogRequestDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WeightLogResponseDto;
+import com.olehprukhnytskyi.macrotrackerweightservice.dto.WeightLogSyncPushRequestDto;
+import com.olehprukhnytskyi.macrotrackerweightservice.dto.WeightLogSyncResponseDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.service.WeightService;
 import com.olehprukhnytskyi.util.CustomHeaders;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +14,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +44,7 @@ import org.springframework.web.bind.annotation.RestController;
         description = "Track and manage user weight records and history"
 )
 public class WeightController {
+    private static final String X_DEVICE_ID = "X-Device-Id";
     private final WeightService weightService;
 
     @Operation(
@@ -52,9 +56,11 @@ public class WeightController {
             @RequestHeader(CustomHeaders.X_USER_ID) Long userId,
             @RequestHeader(CustomHeaders.X_REQUEST_ID)
             @NotBlank @Size(max = 100) String requestId,
+            @RequestHeader(value = X_DEVICE_ID, required = false) String deviceId,
             @Valid @RequestBody WeightLogRequestDto requestDto) {
         log.debug("Logging new weight entry for userId={} date={}", userId, requestDto.getDate());
-        WeightLogResponseDto savedRecord = weightService.logWeight(userId, requestId, requestDto);
+        WeightLogResponseDto savedRecord = weightService
+                .logWeight(userId, requestId, requestDto, deviceId);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedRecord);
     }
 
@@ -68,6 +74,33 @@ public class WeightController {
             @RequestParam(defaultValue = "0") Long cursor,
             @RequestParam(defaultValue = "100") int limit) {
         return ResponseEntity.ok(weightService.getDelta(userId, cursor, limit));
+    }
+
+    @Operation(
+            summary = "Pull weight cache changes",
+            description = "Retrieve all weight rows changed after the supplied timestamp, "
+                    + "including soft-deleted rows"
+    )
+    @GetMapping("/sync")
+    public ResponseEntity<WeightLogSyncResponseDto> pullSync(
+            @RequestHeader(CustomHeaders.X_USER_ID) Long userId,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant since,
+            @RequestParam(defaultValue = "100") int limit) {
+        Instant effectiveSince = since == null ? Instant.EPOCH : since;
+        return ResponseEntity.ok(weightService.pullSync(userId, effectiveSince, limit));
+    }
+
+    @Operation(
+            summary = "Push local weight cache changes",
+            description = "Apply client-side cache changes using last-write-wins timestamps"
+    )
+    @PostMapping("/sync")
+    public ResponseEntity<WeightLogSyncResponseDto> pushSync(
+            @RequestHeader(CustomHeaders.X_USER_ID) Long userId,
+            @RequestHeader(value = X_DEVICE_ID, required = false) String deviceId,
+            @Valid @RequestBody WeightLogSyncPushRequestDto requestDto) {
+        return ResponseEntity.ok(weightService.pushSync(userId, requestDto, deviceId));
     }
 
     @Operation(
@@ -91,9 +124,11 @@ public class WeightController {
     public ResponseEntity<WeightLogResponseDto> patchWeight(
             @RequestHeader(CustomHeaders.X_USER_ID) Long userId,
             @PathVariable @Positive Long id,
+            @RequestHeader(value = X_DEVICE_ID, required = false) String deviceId,
             @Valid @RequestBody WeightLogPatchDto patchDto) {
         log.debug("Updating weight entry id={} for userId={}", id, userId);
-        WeightLogResponseDto updatedRecord = weightService.updateWeight(id, userId, patchDto);
+        WeightLogResponseDto updatedRecord = weightService
+                .updateWeight(id, userId, patchDto, deviceId);
         return ResponseEntity.ok(updatedRecord);
     }
 
@@ -104,9 +139,10 @@ public class WeightController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteWeight(
             @RequestHeader(CustomHeaders.X_USER_ID) Long userId,
+            @RequestHeader(value = X_DEVICE_ID, required = false) String deviceId,
             @PathVariable @Positive Long id) {
         log.debug("Deleting weight entry id={} for userId={}", id, userId);
-        weightService.deleteWeight(userId, id);
+        weightService.deleteWeight(userId, id, deviceId);
         return ResponseEntity.noContent().build();
     }
 }

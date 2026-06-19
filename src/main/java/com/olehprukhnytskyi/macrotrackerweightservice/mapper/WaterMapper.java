@@ -2,7 +2,9 @@ package com.olehprukhnytskyi.macrotrackerweightservice.mapper;
 
 import com.olehprukhnytskyi.macrotrackerweightservice.config.MapperConfig;
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WaterLogDto;
+import com.olehprukhnytskyi.macrotrackerweightservice.dto.WaterLogSyncItemDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WaterTemplateDto;
+import com.olehprukhnytskyi.macrotrackerweightservice.dto.WaterTemplateSyncItemDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.model.WaterLog;
 import com.olehprukhnytskyi.macrotrackerweightservice.model.WaterTemplate;
 import java.util.List;
@@ -16,6 +18,11 @@ public interface WaterMapper {
     WaterLogDto toDto(WaterLog waterLog);
 
     WaterTemplateDto toDto(WaterTemplate waterTemplate);
+
+    @Mapping(source = "recordDate", target = "date")
+    WaterLogSyncItemDto toSyncDto(WaterLog waterLog);
+
+    WaterTemplateSyncItemDto toSyncDto(WaterTemplate waterTemplate);
 
     List<WaterLogDto> toWaterLogDtos(List<WaterLog> waterLogs);
 

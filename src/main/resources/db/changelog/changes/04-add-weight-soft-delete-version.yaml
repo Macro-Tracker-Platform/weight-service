@@ -1,0 +1,39 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1781960000000-1
+      author: codex
+      changes:
+        - addColumn:
+            tableName: weight_logs
+            columns:
+              - column:
+                  name: is_deleted
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - addColumn:
+            tableName: weight_log_changes
+            columns:
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: weight_logs
+            indexName: idx_weight_logs_user_updated_at
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: updated_at
+              - column:
+                  name: id

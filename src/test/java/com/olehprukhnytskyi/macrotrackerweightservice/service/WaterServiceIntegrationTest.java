@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WaterLogDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WaterLogRequestDto;
+import com.olehprukhnytskyi.macrotrackerweightservice.dto.WaterSyncResponseDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.repository.jpa.WaterLogRepository;
 import com.olehprukhnytskyi.macrotrackerweightservice.repository.jpa.WaterTemplateRepository;
+import java.time.Instant;
 import java.time.LocalDate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -62,5 +64,28 @@ public class WaterServiceIntegrationTest {
         assertThat(waterService.getWaterTemplates(USER_ID))
                 .extracting(template -> template.getAmountMl())
                 .containsExactly(250, 350, 500);
+    }
+
+    @Test
+    @DisplayName("When water is deleted, sync should expose tombstone")
+    void deleteWater_whenDeleted_shouldExposeTombstoneInSync() {
+        // Given
+        LocalDate date = LocalDate.of(2026, 6, 12);
+        WaterLogDto created = waterService.addWater(USER_ID, "request-1",
+                WaterLogRequestDto.builder()
+                        .amountMl(350)
+                        .createdAt(1781265600000L)
+                        .date(date)
+                        .build());
+
+        // When
+        waterService.deleteWater(USER_ID, created.getId());
+        WaterSyncResponseDto sync = waterService.pullSync(USER_ID, Instant.EPOCH, 100);
+
+        // Then
+        assertThat(waterService.getWaterLogs(USER_ID, date)).isEmpty();
+        assertThat(sync.getLogs()).hasSize(1);
+        assertThat(sync.getLogs().getFirst().getId()).isEqualTo(created.getId());
+        assertThat(sync.getLogs().getFirst().isDeleted()).isTrue();
     }
 }

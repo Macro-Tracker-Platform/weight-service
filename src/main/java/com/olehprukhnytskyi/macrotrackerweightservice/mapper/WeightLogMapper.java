@@ -15,5 +15,8 @@ public interface WeightLogMapper {
     WeightLogResponseDto toDto(WeightLog weightLog);
 
     @Mapping(source = "date", target = "recordDate")
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
     void updateEntityFromDto(WeightLogPatchDto dto, @MappingTarget WeightLog entity);
 }

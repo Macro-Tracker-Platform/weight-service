@@ -1,6 +1,7 @@
 package com.olehprukhnytskyi.macrotrackerweightservice.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -9,12 +10,17 @@ import static org.mockito.Mockito.when;
 
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WaterLogDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WaterLogRequestDto;
+import com.olehprukhnytskyi.macrotrackerweightservice.dto.WaterLogSyncItemDto;
+import com.olehprukhnytskyi.macrotrackerweightservice.dto.WaterSyncPushRequestDto;
+import com.olehprukhnytskyi.macrotrackerweightservice.dto.WaterSyncResponseDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WaterTemplateDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.mapper.WaterMapper;
 import com.olehprukhnytskyi.macrotrackerweightservice.model.WaterLog;
 import com.olehprukhnytskyi.macrotrackerweightservice.model.WaterTemplate;
+import com.olehprukhnytskyi.macrotrackerweightservice.producer.CacheInvalidationProducer;
 import com.olehprukhnytskyi.macrotrackerweightservice.repository.jpa.WaterLogRepository;
 import com.olehprukhnytskyi.macrotrackerweightservice.repository.jpa.WaterTemplateRepository;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +30,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.server.ResponseStatusException;
 
 @ExtendWith(MockitoExtension.class)
 class WaterServiceTest {
@@ -37,6 +44,9 @@ class WaterServiceTest {
     private WaterTemplateRepository waterTemplateRepository;
 
     @Mock
+    private CacheInvalidationProducer cacheInvalidationProducer;
+
+    @Mock
     private WaterMapper mapper;
 
     @InjectMocks
@@ -48,7 +58,7 @@ class WaterServiceTest {
         // Given
         WaterLog existingLog = waterLog(7L, 350, 1781265600000L);
         WaterLogDto existingLogDto = waterLogDto(7L, 350, 1781265600000L);
-        when(waterLogRepository.findByUserIdAndRequestId(USER_ID, "request-1"))
+        when(waterLogRepository.findAnyByUserIdAndRequestId(USER_ID, "request-1"))
                 .thenReturn(Optional.of(existingLog));
         when(mapper.toDto(existingLog)).thenReturn(existingLogDto);
 
@@ -127,15 +137,86 @@ class WaterServiceTest {
     }
 
     @Test
-    @DisplayName("When water is deleted, should delete it only for owner")
-    void deleteWater_whenWaterIsDeleted_shouldDeleteOnlyForOwner() {
+    @DisplayName("When water is deleted, should soft-delete it only for owner")
+    void deleteWater_whenWaterIsDeleted_shouldSoftDeleteOnlyForOwner() {
         // Given
+        WaterLog waterLog = waterLog(9L, 250, 1781265600000L);
+        when(waterLogRepository.findAnyByIdAndUserId(9L, USER_ID))
+                .thenReturn(Optional.of(waterLog));
 
         // When
         waterService.deleteWater(USER_ID, 9L);
 
         // Then
-        verify(waterLogRepository).deleteByIdAndUserId(9L, USER_ID);
+        assertThat(waterLog.isDeleted()).isTrue();
+        assertThat(waterLog.getUpdatedAt()).isNotNull();
+        verify(waterLogRepository).saveAndFlush(waterLog);
+    }
+
+    @Test
+    @DisplayName("When pushed water log change is older, should keep server row")
+    void pushSync_whenLogChangeIsOlder_shouldKeepServerRow() {
+        // Given
+        Instant serverUpdatedAt = Instant.parse("2026-06-19T08:00:00Z");
+        WaterLog existingLog = waterLog(7L, 350, 1781265600000L);
+        existingLog.setUpdatedAt(serverUpdatedAt);
+        WaterLogSyncItemDto currentDto = WaterLogSyncItemDto.builder()
+                .id(7L)
+                .requestId("request-7")
+                .amountMl(350)
+                .createdAt(1781265600000L)
+                .date(DATE)
+                .updatedAt(serverUpdatedAt)
+                .build();
+        WaterLogSyncItemDto staleChange = WaterLogSyncItemDto.builder()
+                .id(7L)
+                .requestId("request-7")
+                .amountMl(500)
+                .createdAt(1781265700000L)
+                .date(DATE)
+                .updatedAt(serverUpdatedAt.minusSeconds(60))
+                .build();
+        when(waterLogRepository.findAnyByIdAndUserId(7L, USER_ID))
+                .thenReturn(Optional.of(existingLog));
+        when(mapper.toSyncDto(existingLog)).thenReturn(currentDto);
+
+        // When
+        WaterSyncResponseDto response = waterService.pushSync(USER_ID,
+                WaterSyncPushRequestDto.builder()
+                        .logChanges(List.of(staleChange))
+                        .templateChanges(List.of())
+                        .build());
+
+        // Then
+        assertThat(response.getLogs()).extracting(WaterLogSyncItemDto::getAmountMl)
+                .containsExactly(350);
+        verify(waterLogRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    @DisplayName("When template version is stale, should throw conflict")
+    void updateWaterTemplate_whenVersionIsStale_shouldThrowConflict() {
+        // Given
+        WaterTemplate template = WaterTemplate.builder()
+                .id(1L)
+                .userId(USER_ID)
+                .amountMl(250)
+                .active(true)
+                .version(3L)
+                .build();
+        when(waterTemplateRepository.findByUserIdAndAmountMl(USER_ID, 250))
+                .thenReturn(Optional.of(template));
+
+        // When / Then
+        assertThatThrownBy(() -> waterService.updateWaterTemplate(USER_ID, 250,
+                WaterTemplateDto.builder()
+                        .amountMl(300)
+                        .active(true)
+                        .version(2L)
+                        .build()))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("409 CONFLICT");
+        verify(waterTemplateRepository, never()).save(any());
     }
 
     private WaterLog waterLog(Long id, int amountMl, long createdAt) {

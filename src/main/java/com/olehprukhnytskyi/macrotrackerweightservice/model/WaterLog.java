@@ -6,8 +6,11 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
+import java.time.Instant;
 import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -46,4 +49,21 @@ public class WaterLog {
 
     @Column(name = "record_date", nullable = false)
     private LocalDate recordDate;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    @Column(name = "is_deleted", nullable = false)
+    private boolean deleted;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
+    @PrePersist
+    void onCreate() {
+        if (updatedAt == null) {
+            updatedAt = Instant.now();
+        }
+    }
 }

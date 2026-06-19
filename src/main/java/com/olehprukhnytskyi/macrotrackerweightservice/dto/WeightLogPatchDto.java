@@ -23,4 +23,7 @@ public class WeightLogPatchDto {
 
     @Schema(description = "Date the weight was recorded", example = "2023-10-28")
     private LocalDate date;
+
+    @Schema(description = "Client's last known server version", example = "2")
+    private Long version;
 }

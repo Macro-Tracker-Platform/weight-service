@@ -2,6 +2,7 @@ package com.olehprukhnytskyi.macrotrackerweightservice.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,4 +23,13 @@ public class WeightLogResponseDto {
 
     @Schema(description = "Date of the weight record", example = "2023-10-28")
     private LocalDate date;
+
+    @Schema(description = "Last server-visible modification time")
+    private Instant updatedAt;
+
+    @Schema(description = "Whether the record is a soft-deleted tombstone")
+    private boolean deleted;
+
+    @Schema(description = "Optimistic locking version")
+    private Long version;
 }

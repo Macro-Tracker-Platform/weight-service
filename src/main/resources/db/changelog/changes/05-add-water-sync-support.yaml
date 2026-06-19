@@ -1,0 +1,71 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1781962000000-1
+      author: codex
+      changes:
+        - addColumn:
+            tableName: water_logs
+            columns:
+              - column:
+                  name: updated_at
+                  type: DATETIME
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_deleted
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: water_logs
+            indexName: idx_water_logs_user_updated_at
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: updated_at
+              - column:
+                  name: id
+  - changeSet:
+      id: 1781962000000-2
+      author: codex
+      changes:
+        - addColumn:
+            tableName: water_templates
+            columns:
+              - column:
+                  name: updated_at
+                  type: DATETIME
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_deleted
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: water_templates
+            indexName: idx_water_templates_user_updated_at
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: updated_at
+              - column:
+                  name: id

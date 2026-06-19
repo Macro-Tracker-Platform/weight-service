@@ -9,8 +9,10 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -19,8 +21,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
 @Table(
@@ -56,11 +56,27 @@ public class WeightLog {
     @Column(nullable = false, length = 50)
     private WeightSource source;
 
-    @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 
-    @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @Column(name = "is_deleted", nullable = false)
+    private boolean deleted;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
+    @PrePersist
+    void onCreate() {
+        Instant now = Instant.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        if (updatedAt == null) {
+            updatedAt = now;
+        }
+    }
 }
