@@ -1,5 +1,6 @@
 package com.olehprukhnytskyi.macrotrackerweightservice.controller;
 
+import com.olehprukhnytskyi.dto.PagedResponse;
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WeightLogDeltaResponseDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WeightLogPatchDto;
 import com.olehprukhnytskyi.macrotrackerweightservice.dto.WeightLogRequestDto;
@@ -62,6 +63,18 @@ public class WeightController {
         WeightLogResponseDto savedRecord = weightService
                 .logWeight(userId, requestId, requestDto, deviceId);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedRecord);
+    }
+
+    @Operation(
+            summary = "Get weight history (paginated)",
+            description = "Retrieve paginated active weight history"
+    )
+    @GetMapping
+    public ResponseEntity<PagedResponse<WeightLogResponseDto>> getHistory(
+            @RequestHeader(CustomHeaders.X_USER_ID) Long userId,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "30") int limit) {
+        return ResponseEntity.ok(weightService.getHistory(userId, offset, limit));
     }
 
     @Operation(

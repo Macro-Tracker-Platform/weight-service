@@ -165,18 +165,17 @@ public class WeightService {
 
     @Transactional(readOnly = true)
     public PagedResponse<WeightLogResponseDto> getHistory(Long userId, int offset, int limit) {
-        if (limit > 100) {
-            limit = 100;
-        }
+        int boundedLimit = Math.clamp(limit, 1, 100);
+        int boundedOffset = Math.max(0, offset);
         Pageable pageable = PageRequest.of(
-                offset / limit,
-                limit,
+                boundedOffset / boundedLimit,
+                boundedLimit,
                 Sort.by("recordDate").descending()
         );
         Page<WeightLog> page = repository.findAllByUserIdAndDeletedFalse(userId, pageable);
         Pagination pagination = new Pagination();
-        pagination.setOffset(offset);
-        pagination.setLimit(limit);
+        pagination.setOffset(boundedOffset);
+        pagination.setLimit(boundedLimit);
         pagination.setTotal((int) page.getTotalElements());
 
         List<WeightLogResponseDto> data = page.getContent()
