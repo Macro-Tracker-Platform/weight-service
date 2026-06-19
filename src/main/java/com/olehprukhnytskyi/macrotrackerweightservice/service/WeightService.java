@@ -335,19 +335,19 @@ public class WeightService {
         Optional<WeightLog> existing = findExistingSyncTarget(userId, change);
         if (existing.isPresent()) {
             WeightLog weightLog = existing.get();
-            if (!change.getUpdatedAt().isAfter(weightLog.getUpdatedAt())) {
-                return Optional.of(toSyncItemDto(weightLog));
-            }
             if (change.isDeleted()) {
                 weightLog.setDeleted(true);
-            } else {
-                validateActiveSyncChange(change);
-                weightLog.setWeight(change.getWeight());
-                weightLog.setRecordDate(change.getDate());
-                weightLog.setSource(change.getSource());
-                weightLog.setDeleted(false);
+                weightLog.setUpdatedAt(Instant.now());
+                WeightLog savedLog = repository.saveAndFlush(weightLog);
+                recordChange(savedLog, true);
+                return Optional.of(toSyncItemDto(savedLog));
             }
-            weightLog.setUpdatedAt(change.getUpdatedAt());
+            validateActiveSyncChange(change);
+            weightLog.setWeight(change.getWeight());
+            weightLog.setRecordDate(change.getDate());
+            weightLog.setSource(change.getSource());
+            weightLog.setDeleted(false);
+            weightLog.setUpdatedAt(Instant.now());
             WeightLog savedLog = repository.saveAndFlush(weightLog);
             recordChange(savedLog, savedLog.isDeleted());
             return Optional.of(toSyncItemDto(savedLog));
@@ -362,7 +362,7 @@ public class WeightService {
                 .weight(change.getWeight())
                 .recordDate(change.getDate())
                 .source(change.getSource())
-                .updatedAt(change.getUpdatedAt())
+                .updatedAt(Instant.now())
                 .deleted(false)
                 .build();
         WeightLog savedLog = repository.saveAndFlush(weightLog);

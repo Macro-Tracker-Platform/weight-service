@@ -154,17 +154,17 @@ class WaterServiceTest {
     }
 
     @Test
-    @DisplayName("When pushed water log change is older, should keep server row")
-    void pushSync_whenLogChangeIsOlder_shouldKeepServerRow() {
+    @DisplayName("When pushed water log has older client time, should apply server-received change")
+    void pushSync_whenLogChangeIsOlder_shouldApplyServerReceivedChange() {
         // Given
         Instant serverUpdatedAt = Instant.parse("2026-06-19T08:00:00Z");
         WaterLog existingLog = waterLog(7L, 350, 1781265600000L);
         existingLog.setUpdatedAt(serverUpdatedAt);
-        WaterLogSyncItemDto currentDto = WaterLogSyncItemDto.builder()
+        WaterLogSyncItemDto appliedDto = WaterLogSyncItemDto.builder()
                 .id(7L)
                 .requestId("request-7")
-                .amountMl(350)
-                .createdAt(1781265600000L)
+                .amountMl(500)
+                .createdAt(1781265700000L)
                 .date(DATE)
                 .updatedAt(serverUpdatedAt)
                 .build();
@@ -178,7 +178,8 @@ class WaterServiceTest {
                 .build();
         when(waterLogRepository.findAnyByIdAndUserId(7L, USER_ID))
                 .thenReturn(Optional.of(existingLog));
-        when(mapper.toSyncDto(existingLog)).thenReturn(currentDto);
+        when(waterLogRepository.saveAndFlush(existingLog)).thenReturn(existingLog);
+        when(mapper.toSyncDto(existingLog)).thenReturn(appliedDto);
 
         // When
         WaterSyncResponseDto response = waterService.pushSync(USER_ID,
@@ -189,8 +190,52 @@ class WaterServiceTest {
 
         // Then
         assertThat(response.getLogs()).extracting(WaterLogSyncItemDto::getAmountMl)
-                .containsExactly(350);
-        verify(waterLogRepository, never()).saveAndFlush(any());
+                .containsExactly(500);
+        assertThat(existingLog.getAmountMl()).isEqualTo(500);
+        assertThat(existingLog.getUpdatedAt()).isAfter(serverUpdatedAt);
+        verify(waterLogRepository).saveAndFlush(existingLog);
+    }
+
+    @Test
+    @DisplayName("When pushed water delete is older, should still tombstone existing row")
+    void pushSync_whenDeleteIsOlder_shouldTombstoneExistingRow() {
+        // Given
+        Instant serverUpdatedAt = Instant.parse("2026-06-19T08:00:00Z");
+        WaterLog existingLog = waterLog(7L, 350, 1781265600000L);
+        existingLog.setUpdatedAt(serverUpdatedAt);
+        WaterLogSyncItemDto tombstoneDto = WaterLogSyncItemDto.builder()
+                .id(7L)
+                .requestId("request-7")
+                .amountMl(350)
+                .createdAt(1781265600000L)
+                .date(DATE)
+                .updatedAt(serverUpdatedAt)
+                .deleted(true)
+                .build();
+        WaterLogSyncItemDto staleDelete = WaterLogSyncItemDto.builder()
+                .id(7L)
+                .requestId("request-7")
+                .updatedAt(serverUpdatedAt.minusSeconds(60))
+                .deleted(true)
+                .build();
+        when(waterLogRepository.findAnyByIdAndUserId(7L, USER_ID))
+                .thenReturn(Optional.of(existingLog));
+        when(waterLogRepository.saveAndFlush(existingLog)).thenReturn(existingLog);
+        when(mapper.toSyncDto(existingLog)).thenReturn(tombstoneDto);
+
+        // When
+        WaterSyncResponseDto response = waterService.pushSync(USER_ID,
+                WaterSyncPushRequestDto.builder()
+                        .logChanges(List.of(staleDelete))
+                        .templateChanges(List.of())
+                        .build());
+
+        // Then
+        assertThat(existingLog.isDeleted()).isTrue();
+        assertThat(existingLog.getUpdatedAt()).isAfter(serverUpdatedAt);
+        assertThat(response.getLogs()).extracting(WaterLogSyncItemDto::isDeleted)
+                .containsExactly(true);
+        verify(waterLogRepository).saveAndFlush(existingLog);
     }
 
     @Test

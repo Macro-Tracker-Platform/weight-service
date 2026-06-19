@@ -227,20 +227,18 @@ public class WaterService {
         Optional<WaterLog> existing = findExistingLog(userId, change);
         if (existing.isPresent()) {
             WaterLog waterLog = existing.get();
-            if (!change.getUpdatedAt().isAfter(waterLog.getUpdatedAt())) {
-                return Optional.of(mapper.toSyncDto(waterLog));
-            }
             if (change.isDeleted()) {
                 waterLog.setDeleted(true);
-            } else {
-                validateActiveLogChange(change);
-                waterLog.setRequestId(change.getRequestId());
-                waterLog.setAmountMl(change.getAmountMl());
-                waterLog.setCreatedAt(change.getCreatedAt());
-                waterLog.setRecordDate(change.getDate());
-                waterLog.setDeleted(false);
+                waterLog.setUpdatedAt(Instant.now());
+                return Optional.of(mapper.toSyncDto(waterLogRepository.saveAndFlush(waterLog)));
             }
-            waterLog.setUpdatedAt(change.getUpdatedAt());
+            validateActiveLogChange(change);
+            waterLog.setRequestId(change.getRequestId());
+            waterLog.setAmountMl(change.getAmountMl());
+            waterLog.setCreatedAt(change.getCreatedAt());
+            waterLog.setRecordDate(change.getDate());
+            waterLog.setDeleted(false);
+            waterLog.setUpdatedAt(Instant.now());
             return Optional.of(mapper.toSyncDto(waterLogRepository.saveAndFlush(waterLog)));
         }
 
@@ -254,7 +252,7 @@ public class WaterService {
                 .amountMl(change.getAmountMl())
                 .createdAt(change.getCreatedAt())
                 .recordDate(change.getDate())
-                .updatedAt(change.getUpdatedAt())
+                .updatedAt(Instant.now())
                 .deleted(false)
                 .build();
         return Optional.of(mapper.toSyncDto(waterLogRepository.saveAndFlush(waterLog)));
@@ -269,11 +267,14 @@ public class WaterService {
         Optional<WaterTemplate> existing = findExistingTemplate(userId, change);
         if (existing.isPresent()) {
             WaterTemplate template = existing.get();
-            if (!change.getUpdatedAt().isAfter(template.getUpdatedAt())) {
-                return Optional.of(mapper.toSyncDto(template));
+            if (change.isDeleted()) {
+                template.setDeleted(true);
+                template.setUpdatedAt(Instant.now());
+                return Optional.of(mapper.toSyncDto(waterTemplateRepository
+                        .saveAndFlush(template)));
             }
             applyTemplateSyncState(template, change);
-            template.setUpdatedAt(change.getUpdatedAt());
+            template.setUpdatedAt(Instant.now());
             return Optional.of(mapper.toSyncDto(waterTemplateRepository.saveAndFlush(template)));
         }
 
@@ -285,7 +286,7 @@ public class WaterService {
                 .userId(userId)
                 .amountMl(change.getAmountMl())
                 .active(Boolean.TRUE.equals(change.getActive()))
-                .updatedAt(change.getUpdatedAt())
+                .updatedAt(Instant.now())
                 .deleted(false)
                 .build();
         return Optional.of(mapper.toSyncDto(waterTemplateRepository.saveAndFlush(template)));

@@ -142,8 +142,8 @@ public class WeightServiceIntegrationTest {
     }
 
     @Test
-    @DisplayName("When sync push is older than server row, should keep server version")
-    void pushSync_whenClientChangeIsOlder_shouldKeepServerVersion() {
+    @DisplayName("When sync push has older client time, should apply server-received change")
+    void pushSync_whenClientChangeIsOlder_shouldApplyServerReceivedChange() {
         // Given
         WeightLogResponseDto created = weightService.logWeight(USER_ID, "weight-request-1",
                 weightRequest("75.50", LocalDate.of(2026, 6, 12)));
@@ -164,11 +164,37 @@ public class WeightServiceIntegrationTest {
 
         // Then
         assertThat(response.getData()).hasSize(1);
-        assertThat(response.getData().getFirst().getWeight()).isEqualByComparingTo("75.50");
+        assertThat(response.getData().getFirst().getWeight()).isEqualByComparingTo("80.00");
         assertThat(weightLogRepository.findById(created.getId()))
                 .get()
                 .extracting(weightLog -> weightLog.getWeight())
-                .isEqualTo(new BigDecimal("75.50"));
+                .isEqualTo(new BigDecimal("80.00"));
+    }
+
+    @Test
+    @DisplayName("When sync delete is older than server row, should still tombstone it")
+    void pushSync_whenDeleteIsOlder_shouldTombstoneServerRow() {
+        // Given
+        WeightLogResponseDto created = weightService.logWeight(USER_ID, "weight-request-1",
+                weightRequest("75.50", LocalDate.of(2026, 6, 12)));
+        WeightLogSyncItemDto staleDelete = WeightLogSyncItemDto.builder()
+                .id(created.getId())
+                .date(created.getDate())
+                .updatedAt(created.getUpdatedAt().minusSeconds(60))
+                .deleted(true)
+                .version(created.getVersion())
+                .build();
+
+        // When
+        WeightLogSyncResponseDto response = weightService.pushSync(USER_ID,
+                WeightLogSyncPushRequestDto.builder()
+                        .changes(List.of(staleDelete))
+                        .build());
+
+        // Then
+        assertThat(response.getData()).hasSize(1);
+        assertThat(response.getData().getFirst().isDeleted()).isTrue();
+        assertThat(weightService.getHistory(USER_ID, 0, 100).getData()).isEmpty();
     }
 
     @Test
