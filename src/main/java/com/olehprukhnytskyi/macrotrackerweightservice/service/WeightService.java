@@ -132,7 +132,7 @@ public class WeightService {
                 ? new ArrayList<>(fetched.subList(0, boundedLimit))
                 : fetched;
         Instant nextSyncTime = hasMore && !page.isEmpty()
-                ? page.getLast().getUpdatedAt()
+                ? page.getLast().getUpdatedAt().minusNanos(1)
                 : snapshotTime;
         return WeightLogSyncResponseDto.builder()
                 .data(page.stream().map(this::toSyncItemDto).toList())

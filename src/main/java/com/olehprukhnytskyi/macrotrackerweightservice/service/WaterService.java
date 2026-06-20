@@ -227,6 +227,9 @@ public class WaterService {
         Optional<WaterLog> existing = findExistingLog(userId, change);
         if (existing.isPresent()) {
             WaterLog waterLog = existing.get();
+            if (waterLog.isDeleted() && !change.isDeleted()) {
+                return Optional.of(mapper.toSyncDto(waterLog));
+            }
             if (change.isDeleted()) {
                 waterLog.setDeleted(true);
                 waterLog.setUpdatedAt(Instant.now());
@@ -243,7 +246,20 @@ public class WaterService {
         }
 
         if (change.isDeleted()) {
-            return Optional.empty();
+            if (!canCreateLogTombstone(change)) {
+                return Optional.empty();
+            }
+            validateActiveLogChange(change);
+            WaterLog waterLog = WaterLog.builder()
+                    .userId(userId)
+                    .requestId(change.getRequestId())
+                    .amountMl(change.getAmountMl())
+                    .createdAt(change.getCreatedAt())
+                    .recordDate(change.getDate())
+                    .updatedAt(Instant.now())
+                    .deleted(true)
+                    .build();
+            return Optional.of(mapper.toSyncDto(waterLogRepository.saveAndFlush(waterLog)));
         }
         validateActiveLogChange(change);
         WaterLog waterLog = WaterLog.builder()
@@ -256,6 +272,13 @@ public class WaterService {
                 .deleted(false)
                 .build();
         return Optional.of(mapper.toSyncDto(waterLogRepository.saveAndFlush(waterLog)));
+    }
+
+    private boolean canCreateLogTombstone(WaterLogSyncItemDto change) {
+        return change.getRequestId() != null
+                && change.getAmountMl() != null
+                && change.getCreatedAt() != null
+                && change.getDate() != null;
     }
 
     private Optional<WaterTemplateSyncItemDto> applyTemplateSyncChange(
